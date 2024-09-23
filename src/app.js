@@ -14,7 +14,7 @@ app.post("/signup", async (req, res) => {
         await user.save();
         res.status(200).send("User added successfully")
     } catch (error) {
-        res.status(400).send("Something went wrong", error);
+        res.status(400).send("Something went wrong " + error);
     }
 })
 
@@ -62,14 +62,21 @@ app.delete("/user", async (req, res) => {
 })
 
 
-app.patch("/user", async (req, res) => {
-    const userId = req.body.userId;
-    const email = req.body.email;
+app.patch("/user/:userId", async (req, res) => {
+    const userId = req.query?.params;
     const data = req.body;
 
+
+
+
     try {
-        // const updatedUser = await User.findByIdAndUpdate(userId, data);
-        const updatedUser = await User.findOneAndUpdate({ email }, data);
+        const allowedKey = ["age", "firstName", "lastName", 'password', "gender", "photoUrl", "about", "skills"];
+        const updateAllowed = Object.keys(req.body).every((key) => allowedKey.includes(key));
+
+        if (!updateAllowed) {
+            throw new Error("Update is not allowed")
+        }
+        const updatedUser = await User.findByIdAndUpdate(userId, data, { runValidators: true });
         if (!updatedUser) {
             res.send("User is not there in the database")
         }
@@ -78,9 +85,9 @@ app.patch("/user", async (req, res) => {
         }
 
     } catch (error) {
-        res.status(500).send("Something went wrong");
+        res.status(500).send("Something went wrong" + error);
     }
-})
+},)
 
 connectDB().then(() => {
     console.log("Connection established to database");
