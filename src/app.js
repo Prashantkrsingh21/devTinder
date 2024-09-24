@@ -1,20 +1,68 @@
 const express = require('express');
-const { connectDB } = require("./config/database.js")
-const User = require("./models/user.js")
+const { connectDB } = require("./config/database.js");
+const { validateSignUpData, validateEmail } = require("./utils/validation.js");
+const cookieParser = require("cookie-parser");
+const bcrypt = require('bcrypt');
+const User = require("./models/user.js");
+const Auth = require('./middleware/auth.js');
+
 
 const app = express();
 
 app.use(express.json());
+app.use(cookieParser());
 
 app.post("/signup", async (req, res) => {
-    // Created an instance of the User model
-    const user = new User(req.body);
-
     try {
+        // Validate the user information 
+        validateSignUpData(req);
+        const { firstName, lastName, email, password } = req.body;
+        // Encrypt the password using bcrypt package
+        const passwordHash = await bcrypt.hash(password, 10);
+        // Created an instance of the User model
+        const user = new User({
+            firstName,
+            lastName,
+            email,
+            password: passwordHash
+        });
         await user.save();
         res.status(200).send("User added successfully")
     } catch (error) {
         res.status(400).send("Something went wrong " + error);
+    }
+})
+
+app.post("/login", async (req, res) => {
+    const { email, password } = req.body;
+    try {
+        validateEmail(email);
+        const user = await User.findOne({ email: email })
+        if (!user) {
+            throw new Error("Invalid credentials");
+        }
+        else {
+            const isPasswordValid = user.validatePassword(password);
+            if (isPasswordValid) {
+                const token = user.createJwt();
+                res.cookie("token", token)
+                res.send("Login successful")
+            }
+            else {
+                throw new Error("Invalid credentials");
+            }
+        }
+    } catch (error) {
+        res.status(400).send(error.message);
+    }
+})
+
+app.get('/profile', Auth, async (req, res) => {
+    const user = req.user
+    try {
+        res.send(user)
+    } catch (error) {
+        res.status(400).send(error.message)
     }
 })
 
