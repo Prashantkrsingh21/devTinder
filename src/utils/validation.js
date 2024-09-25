@@ -17,10 +17,17 @@ const validateSignUpData = (req) => {
     }
 }
 
+const validateEditPayload = (req) => {
+    const allowedEditableFields = ["firstName", "lastName", "age", "gender", "skills", "about", "photoUrl"];
+    const isEditAllowed = Object.keys(req.body).every((key) => allowedEditableFields.includes(key));
+
+    return isEditAllowed;
+}
+
 const validateEmail = (email) => {
     if (!validator.isEmail(email)) {
         throw new Error("Email is invalid")
     }
 }
 
-module.exports = { validateSignUpData, validateEmail }
+module.exports = { validateSignUpData, validateEmail, validateEditPayload }
