@@ -38,5 +38,34 @@ router.post('/request/send/:status/:userId', Auth, async (req, res) => {
 
 })
 
+router.post('/request/review/:status/:requestId', Auth, async (req, res) => {
+    const loggedInUser = req.user;
+    const { status, requestId } = req.params
+
+
+    const allowedStatus = ["accepted", "rejected"];
+    if (!allowedStatus.includes(status)) {
+        return res.status(400).json({ message: `${status} is not allowed` })
+    }
+
+    const connectionRequest = await ConnectionRequest.findOne({
+        _id: requestId,
+        toUserId: loggedInUser._id,
+        status: 'interested'
+    });
+
+    if (!connectionRequest) {
+        return res.status(404).json({ message: `Connection Request is not valid` })
+    }
+
+    connectionRequest.status = status;
+    const data = await connectionRequest.save();
+
+    res.status(200).json({
+        message: 'Status Changed successfully',
+        data
+    })
+})
+
 
 module.exports = router
